@@ -8,6 +8,7 @@ const crd2str =(x, y)=>{
 	return x.toString() + ":" + y.toString()
 }
 
+let tick = 0
 class Level{
 	constructor(width, height, startPoint, template){
 		this.tick = 0
@@ -76,8 +77,10 @@ class Level{
 		for(let i=0; i<this.enemyIds.length; i++){
 			const enemy = this.enemies[this.enemyIds[i]]
 			const destinationDelta = Math.sqrt((enemy.path[enemy.destination][0]-enemy.x)*(enemy.path[enemy.destination][0]-enemy.x)+(enemy.path[enemy.destination][1]-enemy.y)*(enemy.path[enemy.destination][1]-enemy.y))
-			if(Math.abs(destinationDelta*this.cellSize.x) < 1){
-
+			if(Math.abs(destinationDelta*this.cellSize.x) < 0.1){
+				if(tick>=100){
+					tick = 0
+				}
 				this.enemies[this.enemyIds[i]].lastPoint = enemy.destination
 				this.enemies[this.enemyIds[i]].destination = (enemy.destination+1)%enemy.path.length
 				const delta = {x: enemy.path[this.enemies[this.enemyIds[i]].destination][0]-enemy.path[this.enemies[this.enemyIds[i]].lastPoint][0], y: enemy.path[this.enemies[this.enemyIds[i]].destination][1]-enemy.path[this.enemies[this.enemyIds[i]].lastPoint][1]}
@@ -88,6 +91,8 @@ class Level{
 			this.enemies[this.enemyIds[i]].x += this.enemies[this.enemyIds[i]].step.x
 			this.enemies[this.enemyIds[i]].y += this.enemies[this.enemyIds[i]].step.y
 		}
+
+		tick++
 		for(let i=0; i<this.playerIds.length; i++){
 			for(let j=0; j<this.enemyIds.length; j++){
 				const pX = this.players[this.playerIds[i]].x
@@ -133,6 +138,7 @@ class Level{
 			if(!player.isDead){
 				ctx.fillStyle = player.color
 				ctx.fillRect(this.renderAnchor.x+player.x*this.cellSize.x-this.cellSize.x*player.scale/2, this.renderAnchor.y+player.y*this.cellSize.y-this.cellSize.x*player.scale/2, this.cellSize.x*player.scale, this.cellSize.y*player.scale)
+
 			}
 
 		}
@@ -187,6 +193,8 @@ class Player{
 	}
 }
 
+
+
 let levels = {}
 levels[1] = new Level(16, 7, {x:1.5, y:3.5}, "empty")
 
@@ -205,14 +213,25 @@ levels[1].addEnemy("dot5", [[4.25, 5.5], [11.75, 5.5]], 50)
 const player = new Player("player", levels[1])
 
 
+const randomGenotype =(In, Out)=>{ //only for Out: 1-9
+	let GEN = ""
+	for(let i=1; i<=In; i++){
+		GEN += ((Math.floor(Math.random()*Out).toString()))
+	}
+	return(GEN)
+}
+console.log(randomGenotype(33*78*100, 4))
+
+
 let keys = {}
 const loop =()=>{
+	//console.log(tick)
 	requestAnimationFrame(loop)
 	ctx.fillStyle = "#70bfe0"
 	ctx.fillRect(0, 0, 800, 600)
+
 	levels[1].update()
 	levels[1].render()
-
 
 	if(keys["KeyW"] || keys["ArrowUp"]){
 		player.move(0, -player.speed)
@@ -223,10 +242,14 @@ const loop =()=>{
 	}if(keys["KeyD"] || keys["ArrowRight"]){
 		player.move(player.speed, 0)
 	}
+
+
+	
 }
 loop()
 
 document.addEventListener('keydown', (e)=>{
+	//console.log(Math.floor(player.x*5), Math.floor(player.y*5))
 	keys[e.code] = true
 })
 document.addEventListener('keyup', (e)=>{
