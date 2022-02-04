@@ -8,7 +8,7 @@ const crd2str =(x, y)=>{
 	return x.toString() + ":" + y.toString()
 }
 
-let tick = 0
+let tick = 1
 class Level{
 	constructor(width, height, startPoint, template){
 		this.tick = 0
@@ -210,22 +210,22 @@ levels[1].addEnemy("dot3", [[4.25, 3.5], [11.75, 3.5]], 50)
 levels[1].addEnemy("dot4", [[11.75, 4.5], [4.25, 4.5]], 50)
 levels[1].addEnemy("dot5", [[4.25, 5.5], [11.75, 5.5]], 50)
 
-const player = new Player("player", levels[1])
+const robo = new Player("robo", levels[1])
 
 
 const randomGenotype =(In, Out)=>{ //only for Out: 1-9
 	let GEN = ""
 	for(let i=1; i<=In; i++){
-		GEN += ((Math.floor(Math.random()*Out).toString()))
+		GEN += ((Math.floor(Math.random()*Out).toString(4)))
 	}
 	return(GEN)
 }
-console.log(randomGenotype(33*78*100, 4))
 
+//console.log(randomGenotype(33*78*100, 4))
+const roboGENs = randomGenotype(33*78*101, 4)
 
 let keys = {}
 const loop =()=>{
-	//console.log(tick)
 	requestAnimationFrame(loop)
 	ctx.fillStyle = "#70bfe0"
 	ctx.fillRect(0, 0, 800, 600)
@@ -233,16 +233,20 @@ const loop =()=>{
 	levels[1].update()
 	levels[1].render()
 
-	if(keys["KeyW"] || keys["ArrowUp"]){
-		player.move(0, -player.speed)
-	}if(keys["KeyS"] || keys["ArrowDown"]){
-		player.move(0, player.speed)
-	}if(keys["KeyA"] || keys["ArrowLeft"]){
-		player.move(-player.speed, 0)
-	}if(keys["KeyD"] || keys["ArrowRight"]){
-		player.move(player.speed, 0)
-	}
+	const data = {x: Math.floor(robo.x*5), y: Math.floor(robo.y*5), t: tick}
+	const decision = roboGENs[data.y+33*(data.x-1)+33*78*(data.t-1)]
+	//console.log(decision, data)
 
+	if(decision == 0){
+		robo.move(0, -robo.speed)
+	}if(decision == 1){
+		robo.move(0, robo.speed)
+	}if(decision == 2){
+		robo.move(-robo.speed, 0)
+	}if(decision == 3){
+		robo.move(robo.speed, 0)
+	}
+	console.log(decision, data)
 
 	
 }
