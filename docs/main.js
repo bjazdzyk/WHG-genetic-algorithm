@@ -137,7 +137,10 @@ class Level{
 			const player = this.players[this.playerIds[i]]
 			if(!player.isDead){
 				ctx.fillStyle = player.color
+				ctx.strokeStyle = "#8f0000"
+				ctx.lineWidth = 5
 				ctx.fillRect(this.renderAnchor.x+player.x*this.cellSize.x-this.cellSize.x*player.scale/2, this.renderAnchor.y+player.y*this.cellSize.y-this.cellSize.x*player.scale/2, this.cellSize.x*player.scale, this.cellSize.y*player.scale)
+				ctx.strokeRect(this.renderAnchor.x+player.x*this.cellSize.x-this.cellSize.x*player.scale/2, this.renderAnchor.y+player.y*this.cellSize.y-this.cellSize.x*player.scale/2, this.cellSize.x*player.scale, this.cellSize.y*player.scale)
 
 			}
 
@@ -154,8 +157,6 @@ class Player{
 		this.level = level
 		this.scale = 0.6
 		this.color = color
-		this.x = 0
-		this.y = 0
 		level.newPlayer(this)
 	}
 	move(x, y){
@@ -210,19 +211,35 @@ levels[1].addEnemy("dot3", [[4.25, 3.5], [11.75, 3.5]], 50)
 levels[1].addEnemy("dot4", [[11.75, 4.5], [4.25, 4.5]], 50)
 levels[1].addEnemy("dot5", [[4.25, 5.5], [11.75, 5.5]], 50)
 
-const robo = new Player("robo", levels[1])
-
-
 const randomGenotype =(In, Out)=>{ //only for Out: 1-9
 	let GEN = ""
-	for(let i=1; i<=In; i++){
+	for(let i=0; i<=In; i++){
 		GEN += ((Math.floor(Math.random()*Out).toString(4)))
 	}
 	return(GEN)
 }
 
-//console.log(randomGenotype(33*78*100, 4))
-const roboGENs = randomGenotype(33*78*101, 4)
+const firstGeneration = (botCount, level)=>{
+	let botList = []
+	for(let i=1; i<=botCount; i++){
+		botList.push({player: new Player("botNr:" + i.toString(), level), genotype: randomGenotype(7*16*51, 4)})
+	}
+	return(botList)
+}
+
+const fitness =(player, targetX = 13.5, targetY = 0.5)=>{
+	const x = player.x
+	const y = player.y
+	const deltaX = Math.abs(targetX-x)
+	const deltaY = Math.abs(targetY-y)
+	const targetDistance = Math.sqrt(deltaX*deltaX + deltaY*deltaY)
+	return targetDistance
+}
+
+const currentGeneration = firstGeneration(500, levels[1])
+console.log(fitness(currentGeneration[1].player))
+
+//console.log(randomGenotype(33*78*101, 4))
 
 let keys = {}
 const loop =()=>{
@@ -232,28 +249,30 @@ const loop =()=>{
 
 	levels[1].update()
 	levels[1].render()
+	for(let i=0; i<currentGeneration.length; i++){
+		const roboGENs = currentGeneration[i].genotype
+		const data = {x: Math.floor(currentGeneration[i].player.x), y: Math.floor(currentGeneration[i].player.y), t: Math.floor(tick/2)}
+		const decision = roboGENs[data.y+6*(data.x)+6*15*(data.t)]
 
-	const data = {x: Math.floor(robo.x*5), y: Math.floor(robo.y*5), t: tick}
-	const decision = roboGENs[data.y+33*(data.x-1)+33*78*(data.t-1)]
-	//console.log(decision, data)
-
-	if(decision == 0){
-		robo.move(0, -robo.speed)
-	}if(decision == 1){
-		robo.move(0, robo.speed)
-	}if(decision == 2){
-		robo.move(-robo.speed, 0)
-	}if(decision == 3){
-		robo.move(robo.speed, 0)
+		if(decision == 0){
+			currentGeneration[i].player.move(0, -currentGeneration[i].player.speed)
+		}if(decision == 1){
+			currentGeneration[i].player.move(0, currentGeneration[i].player.speed)
+		}if(decision == 2){
+			currentGeneration[i].player.move(-currentGeneration[i].player.speed, 0)
+		}if(decision == 3){
+			currentGeneration[i].player.move(currentGeneration[i].player.speed, 0)
+		}
+		if(decision == undefined){
+			console.log(decision, data, data.y+6*(data.x-1)+6*15*(data.t-1))
+		}
 	}
-	console.log(decision, data)
 
 	
 }
 loop()
 
 document.addEventListener('keydown', (e)=>{
-	//console.log(Math.floor(player.x*5), Math.floor(player.y*5))
 	keys[e.code] = true
 })
 document.addEventListener('keyup', (e)=>{
