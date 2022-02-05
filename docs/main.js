@@ -235,6 +235,9 @@ const fitness =(player, targetX = 14.5, targetY = 3.5)=>{
 	const x = player.x
 	const deltaX = Math.abs(targetX-x)
 	let fitness = 200-deltaX*10
+	if(player.isDead){
+		fitness -= 10
+	}
 	return fitness
 }
 
@@ -304,7 +307,8 @@ let currentGeneration = firstGeneration(500, levels[1])
 
 let keys = {}
 let l = 0
-let steps = 50
+let g = 0
+let steps = 100
 const loop =()=>{
 	requestAnimationFrame(loop)
 	ctx.fillStyle = "#70bfe0"
@@ -335,7 +339,11 @@ const loop =()=>{
 		levels[1].clear()
 		currentGeneration = newGeneration(currentGeneration, levels[1])
 		l = 0
-		steps+=30
+		g++
+	}
+	if(g>=10){
+		steps+=25
+		g = 0
 	}
 	l++
 
