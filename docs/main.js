@@ -20,7 +20,8 @@ class Level{
 		this.enemies = {}
 		this.enemyIds = []
 		this.players = {}
-		this.playerIds =[ ]
+		this.playerIds = []
+		this.checkPoints = [[startPoint.x, startPoint.y], [3.5, 6.5], [12.5, 0.5], [6.5, 15.5]]
 		if(this.width > this.height){
 			this.renderSize = {x:screenWidth-100, y:(screenWidth-100)/this.width*this.height}
 		}else{
@@ -77,8 +78,9 @@ class Level{
 		for(let i=0; i<this.enemyIds.length; i++){
 			const enemy = this.enemies[this.enemyIds[i]]
 			const destinationDelta = Math.sqrt((enemy.path[enemy.destination][0]-enemy.x)*(enemy.path[enemy.destination][0]-enemy.x)+(enemy.path[enemy.destination][1]-enemy.y)*(enemy.path[enemy.destination][1]-enemy.y))
+			
 			if(Math.abs(destinationDelta*this.cellSize.x) < 0.1){
-				if(tick>=100){
+				if(tick>=120){
 					tick = 0
 				}
 				this.enemies[this.enemyIds[i]].lastPoint = enemy.destination
@@ -90,6 +92,10 @@ class Level{
 			}
 			this.enemies[this.enemyIds[i]].x += this.enemies[this.enemyIds[i]].step.x
 			this.enemies[this.enemyIds[i]].y += this.enemies[this.enemyIds[i]].step.y
+			if(tick == 0){
+				this.enemies[this.enemyIds[i]].x = enemy.path[0][0]
+				this.enemies[this.enemyIds[i]].y = enemy.path[0][1]
+			}
 		}
 
 		tick++
@@ -147,6 +153,7 @@ class Level{
 		}
 	}
 	clear(){
+		tick = 0
 		this.players = {}
 		this.playerIds =[]
 	}
@@ -155,6 +162,7 @@ class Level{
 
 class Player{
 	constructor(id, level, color = "red", speed = 0.06){
+		this.checkPointsPassed = 0
 		this.isDead = false
 		this.speed = speed
 		this.id = id
@@ -164,11 +172,13 @@ class Player{
 		level.newPlayer(this)
 	}
 	move(x, y){
+		let move = false
 		if(!this.isDead){
 			if(x<0 && this.x>this.scale/2){
 				if(this.level.L[crd2str(Math.floor(this.x-this.scale/2-0.07), Math.floor(this.y-this.scale/2))] != 1){
 					if(this.level.L[crd2str(Math.floor(this.x-this.scale/2-0.07), Math.floor(this.y+this.scale/2))] != 1){
 						this.x += x
+						move = true
 					}
 				}
 			}
@@ -176,6 +186,7 @@ class Player{
 				if(this.level.L[crd2str(Math.floor(this.x+this.scale/2+0.07), Math.floor(this.y-this.scale/2))] != 1){
 					if(this.level.L[crd2str(Math.floor(this.x+this.scale/2+0.07), Math.floor(this.y+this.scale/2))] != 1){
 						this.x += x
+						move = true
 					}
 				}
 			}
@@ -184,6 +195,7 @@ class Player{
 				if(this.level.L[crd2str(Math.floor(this.x-this.scale/2), Math.floor(this.y-this.scale/2-0.07))] != 1){
 					if(this.level.L[crd2str(Math.floor(this.x+this.scale/2), Math.floor(this.y-this.scale/2-0.07))] != 1){
 						this.y += y
+						move = true
 					}
 				}
 			}
@@ -191,7 +203,19 @@ class Player{
 				if(this.level.L[crd2str(Math.floor(this.x-this.scale/2), Math.floor(this.y+this.scale/2+0.07))] != 1){
 					if(this.level.L[crd2str(Math.floor(this.x+this.scale/2), Math.floor(this.y+this.scale/2+0.07))] != 1){
 						this.y += y
+						move = true
 					}
+				}
+			}
+			if(move){
+				const targetX = this.level.checkPoints[this.checkPointsPassed+1][0]
+				const targetY = this.level.checkPoints[this.checkPointsPassed+1][1]
+				const deltaX = Math.abs(targetX - this.x)
+				const deltaY = Math.abs(targetY - this.y)
+				const distToCheckpoint = Math.sqrt(deltaX*deltaX + deltaY*deltaY)
+
+				if(distToCheckpoint < 1){
+					this.checkPointsPassed++
 				}
 			}
 		}
@@ -209,11 +233,11 @@ levels[1].fill(5, 6, 7, 1, 1)
 levels[1].fill(12, 1, 1, 6, 1)
 levels[1].fill(0, 0, 3, 7, 2)
 levels[1].fill(13, 0, 3, 7, 2)
-levels[1].addEnemy("dot1", [[4.25, 1.5], [11.75, 1.5]], 50)
-levels[1].addEnemy("dot2", [[11.75, 2.5], [4.25, 2.5]], 50)
-levels[1].addEnemy("dot3", [[4.25, 3.5], [11.75, 3.5]], 50)
-levels[1].addEnemy("dot4", [[11.75, 4.5], [4.25, 4.5]], 50)
-levels[1].addEnemy("dot5", [[4.25, 5.5], [11.75, 5.5]], 50)
+levels[1].addEnemy("dot1", [[4.25, 1.5], [11.75, 1.5]], 60)
+levels[1].addEnemy("dot2", [[11.75, 2.5], [4.25, 2.5]], 60)
+levels[1].addEnemy("dot3", [[4.25, 3.5], [11.75, 3.5]], 60)
+levels[1].addEnemy("dot4", [[11.75, 4.5], [4.25, 4.5]], 60)
+levels[1].addEnemy("dot5", [[4.25, 5.5], [11.75, 5.5]], 60)
 
 const randomGenotype =(In, Out)=>{ //only for Out: 1-9
 	let GEN = ""
@@ -226,15 +250,29 @@ const randomGenotype =(In, Out)=>{ //only for Out: 1-9
 const firstGeneration = (botCount, level)=>{
 	let botList = []
 	for(let i=1; i<=botCount; i++){
-		botList.push({player: new Player("botNr:" + i.toString(), level), genotype: randomGenotype(4*8*21, 4)})
+		botList.push({player: new Player("botNr:" + i.toString(), level), genotype: randomGenotype(8*16*13, 4)})
 	}
 	return(botList)
 }
 
-const fitness =(player, targetX = 14.5, targetY = 3.5)=>{
+const fitness =(player)=>{
 	const x = player.x
-	const deltaX = Math.abs(targetX-x)
-	let fitness = 200-deltaX*10
+	const y = player.y
+	const previousCheckpointX = player.level.checkPoints[player.checkPointsPassed][0]
+	const previousCheckpointY = player.level.checkPoints[player.checkPointsPassed][1]
+	const targetX = player.level.checkPoints[player.checkPointsPassed+1][0]
+	const targetY = player.level.checkPoints[player.checkPointsPassed+1][1]
+	
+	let deltaX = Math.abs(targetX-x)
+	let deltaY = Math.abs(targetY-y)
+	const distNextCheckpoint = Math.sqrt(deltaX*deltaX + deltaY*deltaY)
+
+	deltaX = Math.abs(targetX - previousCheckpointX)
+	deltaY = Math.abs(targetY - previousCheckpointY)
+	const distBtwCheckpoints = Math.sqrt(deltaX*deltaX + deltaY*deltaY)
+
+	let fitness = 100*player.checkPointsPassed + (150*player.level.checkPoints.length-1)-Math.floor(distNextCheckpoint/distBtwCheckpoints*100)
+	
 	if(player.isDead){
 		fitness -= 10
 	}
@@ -263,7 +301,7 @@ const generateFitnessWheel =(generation)=>{
 	for(let i=0; i<generation.length; i++){
 		const f = fitness(generation[i].player)
 		if(f>=averageFitness){
-			wheelSize += f*f*f*f*f
+			wheelSize += f
 		}
 		wheelBorders.push(wheelSize)
 	}
@@ -308,7 +346,7 @@ let currentGeneration = firstGeneration(500, levels[1])
 let keys = {}
 let l = 0
 let g = 0
-let steps = 100
+let steps = 30
 const loop =()=>{
 	requestAnimationFrame(loop)
 	ctx.fillStyle = "#70bfe0"
@@ -318,8 +356,8 @@ const loop =()=>{
 	levels[1].render()
 	for(let i=0; i<currentGeneration.length; i++){
 		const roboGENs = currentGeneration[i].genotype
-		const data = {x: Math.floor(currentGeneration[i].player.x/2), y: Math.floor(currentGeneration[i].player.y/2), t: Math.floor(tick/5)}
-		const decision = roboGENs[data.y+3*(data.x)+3*8*(data.t)]
+		const data = {x: Math.floor(currentGeneration[i].player.x), y: Math.floor(currentGeneration[i].player.y), t: Math.floor(tick/10)}
+		const decision = roboGENs[data.y+8*(data.x)+8*16*(data.t)]
 
 		if(decision == 0){
 			currentGeneration[i].player.move(0, -currentGeneration[i].player.speed)
@@ -341,8 +379,8 @@ const loop =()=>{
 		l = 0
 		g++
 	}
-	if(g>=10){
-		steps+=25
+	if(g>=5){
+		steps+=50
 		g = 0
 	}
 	l++
