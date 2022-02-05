@@ -74,7 +74,6 @@ class Level{
 	}
 
 	update(){
-		console.log(this.playerIds.length)
 		for(let i=0; i<this.enemyIds.length; i++){
 			const enemy = this.enemies[this.enemyIds[i]]
 			const destinationDelta = Math.sqrt((enemy.path[enemy.destination][0]-enemy.x)*(enemy.path[enemy.destination][0]-enemy.x)+(enemy.path[enemy.destination][1]-enemy.y)*(enemy.path[enemy.destination][1]-enemy.y))
@@ -227,7 +226,7 @@ const randomGenotype =(In, Out)=>{ //only for Out: 1-9
 const firstGeneration = (botCount, level)=>{
 	let botList = []
 	for(let i=1; i<=botCount; i++){
-		botList.push({player: new Player("botNr:" + i.toString(), level), genotype: randomGenotype(7*16*51, 4)})
+		botList.push({player: new Player("botNr:" + i.toString(), level), genotype: randomGenotype(4*8*21, 4)})
 	}
 	return(botList)
 }
@@ -235,7 +234,8 @@ const firstGeneration = (botCount, level)=>{
 const fitness =(player, targetX = 14.5, targetY = 3.5)=>{
 	const x = player.x
 	const deltaX = Math.abs(targetX-x)
-	return 200-deltaX*10
+	let fitness = 200-deltaX*10
+	return fitness
 }
 
 const crossover =(G1, G2)=>{
@@ -245,12 +245,22 @@ const crossover =(G1, G2)=>{
 }
 
 const generateFitnessWheel =(generation)=>{
+	let fitnessSum = 0
+	let fitnessDenominator = 0
+	for(let i=0; i<generation.length; i++){
+		const f = fitness(generation[i].player)
+		fitnessSum += f
+		fitnessDenominator ++
+	}
+	const averageFitness = fitnessSum/fitnessDenominator
+
+
 	let wheelBorders = []
 	let wheelSize = 0
 	for(let i=0; i<generation.length; i++){
 		const f = fitness(generation[i].player)
-		if(f>0){
-			wheelSize += f*f
+		if(f>=averageFitness){
+			wheelSize += f*f*f*f*f
 		}
 		wheelBorders.push(wheelSize)
 	}
@@ -289,7 +299,6 @@ const newGeneration =(generation, level)=>{
 }
 
 let currentGeneration = firstGeneration(500, levels[1])
-console.log(fitness(currentGeneration[1].player))
 
 //console.log(randomGenotype(33*78*101, 4))
 
@@ -305,8 +314,8 @@ const loop =()=>{
 	levels[1].render()
 	for(let i=0; i<currentGeneration.length; i++){
 		const roboGENs = currentGeneration[i].genotype
-		const data = {x: Math.floor(currentGeneration[i].player.x), y: Math.floor(currentGeneration[i].player.y), t: Math.floor(tick/2)}
-		const decision = roboGENs[data.y+6*(data.x)+6*15*(data.t)]
+		const data = {x: Math.floor(currentGeneration[i].player.x/2), y: Math.floor(currentGeneration[i].player.y/2), t: Math.floor(tick/5)}
+		const decision = roboGENs[data.y+3*(data.x)+3*8*(data.t)]
 
 		if(decision == 0){
 			currentGeneration[i].player.move(0, -currentGeneration[i].player.speed)
@@ -325,9 +334,8 @@ const loop =()=>{
 	if(l>=steps){
 		levels[1].clear()
 		currentGeneration = newGeneration(currentGeneration, levels[1])
-		console.log(currentGeneration.length)
 		l = 0
-		steps+=1
+		steps+=30
 	}
 	l++
 
