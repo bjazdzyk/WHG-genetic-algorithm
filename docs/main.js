@@ -74,6 +74,7 @@ class Level{
 	}
 
 	update(){
+		console.log(this.playerIds.length)
 		for(let i=0; i<this.enemyIds.length; i++){
 			const enemy = this.enemies[this.enemyIds[i]]
 			const destinationDelta = Math.sqrt((enemy.path[enemy.destination][0]-enemy.x)*(enemy.path[enemy.destination][0]-enemy.x)+(enemy.path[enemy.destination][1]-enemy.y)*(enemy.path[enemy.destination][1]-enemy.y))
@@ -146,11 +147,15 @@ class Level{
 
 		}
 	}
+	clear(){
+		this.players = {}
+		this.playerIds =[]
+	}
 
 }
 
 class Player{
-	constructor(id, level, color = "red", speed = 0.05){
+	constructor(id, level, color = "red", speed = 0.06){
 		this.isDead = false
 		this.speed = speed
 		this.id = id
@@ -227,21 +232,70 @@ const firstGeneration = (botCount, level)=>{
 	return(botList)
 }
 
-const fitness =(player, targetX = 13.5, targetY = 0.5)=>{
+const fitness =(player, targetX = 14.5, targetY = 3.5)=>{
 	const x = player.x
-	const y = player.y
 	const deltaX = Math.abs(targetX-x)
-	const deltaY = Math.abs(targetY-y)
-	const targetDistance = Math.sqrt(deltaX*deltaX + deltaY*deltaY)
-	return targetDistance
+	return 200-deltaX*10
 }
 
-const currentGeneration = firstGeneration(500, levels[1])
+const crossover =(G1, G2)=>{
+	const slicePoint = Math.floor(Math.random()*(G2.length-2)+1)
+	const crossed = G1.slice(0, slicePoint) + G2.slice(slicePoint, G2.length)
+	return(crossed)
+}
+
+const generateFitnessWheel =(generation)=>{
+	let wheelBorders = []
+	let wheelSize = 0
+	for(let i=0; i<generation.length; i++){
+		const f = fitness(generation[i].player)
+		if(f>0){
+			wheelSize += f*f
+		}
+		wheelBorders.push(wheelSize)
+	}
+	return({borders: wheelBorders, size: wheelSize})
+}
+
+const newGeneration =(generation, level)=>{
+	const wheel = generateFitnessWheel(generation)
+	let nextGeneration = []
+	for(let i=0; i<generation.length; i++){
+		const pre1on_wheel = Math.floor(Math.random()*wheel.size)
+		const pre2on_wheel = Math.floor(Math.random()*wheel.size)
+
+		let pre1id
+		let pre2id
+		for(let j=0; j<generation.length; j++){
+			if(wheel.borders[j]>pre1on_wheel){
+				pre1id = j
+				break
+			}
+		}
+		for(let j=0; j<generation.length; j++){
+			if(wheel.borders[j]>pre2on_wheel){
+				pre2id = j
+				break
+			}
+		}
+
+		const pre1GENs = generation[pre1id].genotype
+		const pre2GENs = generation[pre2id].genotype
+
+		const newBotGENs = crossover(pre1GENs, pre2GENs)
+		nextGeneration.push({player: new Player("botNr:" + i.toString(), level), genotype: newBotGENs})
+	}
+	return(nextGeneration)
+}
+
+let currentGeneration = firstGeneration(500, levels[1])
 console.log(fitness(currentGeneration[1].player))
 
 //console.log(randomGenotype(33*78*101, 4))
 
 let keys = {}
+let l = 0
+let steps = 50
 const loop =()=>{
 	requestAnimationFrame(loop)
 	ctx.fillStyle = "#70bfe0"
@@ -267,6 +321,15 @@ const loop =()=>{
 			console.log(decision, data, data.y+6*(data.x-1)+6*15*(data.t-1))
 		}
 	}
+
+	if(l>=steps){
+		levels[1].clear()
+		currentGeneration = newGeneration(currentGeneration, levels[1])
+		console.log(currentGeneration.length)
+		l = 0
+		steps+=1
+	}
+	l++
 
 	
 }
