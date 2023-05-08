@@ -8,6 +8,8 @@ const crd2str =(x, y)=>{
 	return x.toString() + ":" + y.toString()
 }
 
+//test
+
 let tick = 1
 class Level{
 	constructor(width, height, startPoint, template){
